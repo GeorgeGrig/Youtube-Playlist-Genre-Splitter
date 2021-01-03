@@ -64,12 +64,12 @@ def fetch_all_youtube_videos(playlistId):
     #return a clean entry title & url list
     title_list = []
     url_list = []
-    stopwords = ['.','1.','2.','3.','6.','4.','5.','7.','8.','9.','10.','(audio)','- Lyrics','(VÍDEO)','Official Audio','[',']','(',')','HD','Audio','with lyrics','Explicit','OFFICIAL VIDEO','Official Audio','official video','Official Video','Official Video', 'with lyrics', 'lyrics','official music video','Official Music Video','Official music Video','Official Music video','Official Video']
+    stopwords = ['Extented','ᴴᴰ','1.','2.','3.','6.','4.','5.','7.','8.','9.','10.','(audio)','- Lyrics','(VÍDEO)','Official Audio','[',']','(',')','HD','Audio','with lyrics','Explicit','OFFICIAL VIDEO','Official Audio','official video','Official Video','Official Video', 'with lyrics', 'lyrics','official music video','Official Music Video','Official music Video','Official Music video','Official Video']
     for video in res["items"]:
         title = video.get('snippet')['title']
         for word in stopwords:
             title = title.replace(word,"")
-        title_list.append(title.rstrip())
+        title_list.append(title.strip())
         url_local = video.get('snippet')['resourceId']['videoId']
         url_list.append('https://www.youtube.com/watch?v='+url_local)
     title_list.reverse()
@@ -96,38 +96,60 @@ def get_song_info(titles):
     for title in titles:
         z = 1
         info = genius.search_song(title)
-        if type(info) == 'NoneType':
-            z = 5
+        if info == 'None' or info is None:
             genres.append("Couldn't find genre")
-        url = info.url.strip("'")
-        print("Getting genre info from url")
-        while z <= 4: 
-            try:
-                print("Try no: ",z)
-                driver = webdriver.Firefox(options=options)
-                driver.get(url)
-                WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))).click()
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                driver.implicitly_wait(3)
-                genre = driver.find_element_by_class_name("metadata_with_icon-tags").text
-                driver.quit()
-                genres.append(genre)
-                break
-            except:
-                z +=1
-                driver.quit()
-                if z >= 4:
-                    genre = "Couldn't find genre"
+        else:
+            url = info.url.strip("'")
+            print("Getting genre info from url")
+            while z <= 15: 
+                try:
+                    print("Try no: ",z)
+                    driver = webdriver.Firefox(options=options)
+                    driver.get(url)
+                    WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))).click()
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                    driver.implicitly_wait(3)
+                    genre = driver.find_element_by_class_name("metadata_with_icon-tags").text
+                    driver.quit()
                     genres.append(genre)
+                    print("Got 'em")
+                    break
+                except:
+                    z +=1
+                    driver.quit()
+                    if z >= 4:
+                        genre = "Couldn't find genre"
+                        genres.append(genre)
     return genres
 
-
-
 if __name__ == '__main__':
-    playlists = data["PLAYLISTS"].values()
-    i = 0
-    for playlist in playlists:
-        sheet = client.open("PlaylistGenre").get_worksheet(i) #which already shared google sheet to access
-        videos_names,videos_urls = fetch_all_youtube_videos(playlist)
-        genres = get_song_info(videos_names)
-        i += 1
+    option = input('To get genres from youtube playlist press 0 to create playlists based on genre press 1: ')
+    if option == '0':
+        playlists = data["PLAYLISTS"].values()
+        i = 0
+        for playlist in playlists:
+            sheet = client.open("PlaylistGenre").get_worksheet(i) #which already shared google sheet to access
+            videos_names,videos_urls = fetch_all_youtube_videos(playlist)
+            genres = get_song_info(videos_names)
+            write_sheet(videos_names,videos_urls,genres)
+            i += 1
+    elif option == '1':
+        sheet = client.open("PlaylistGenre").get_worksheet(0)
+        values_list = sheet.col_values(3)
+        csv_values = ",".join(values_list)
+        csv_values = csv_values.split(",")
+        csv_values = [i.strip() for i in csv_values]
+        unique_genres = set(csv_values)
+        unique_genres.remove('Genre')
+        unique_genres.remove("Couldn't find genre")
+        genre = input(f'Choose one of the following genres: {unique_genres} ')
+        k = 0
+        indexes = []
+        while k < len(values_list):
+            if genre in values_list[k]:
+                indexes.append(k)
+            k+=1
+        target_urls = []
+        for index in indexes:
+            target_urls.append(sheet.cell(index+1, 2).value)
+        print(target_urls)
