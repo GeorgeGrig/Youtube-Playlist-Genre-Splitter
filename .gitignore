@@ -1,6 +1,7 @@
 #
 creds.json
 client_secret.json
+client_secret_youtube.json
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

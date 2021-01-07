@@ -27,6 +27,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.firefox.options import Options
+from youtube import addVideoToPlaylist,createPlaylist,authorizeUser
 #Get credentials and value init
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
 creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
@@ -36,11 +37,12 @@ options.headless = True
 
 with open("creds.json", "r") as read_file:
     data = json.load(read_file)
+
 genius = lyricsgenius.Genius(data["GENIUS_CLIENT_ACCESS_TOKEN"])
+youtube = build('youtube', 'v3', developerKey=data["YT_API_KEY"])
 
 #Fetch all playlist entries using the youtube api
 def fetch_all_youtube_videos(playlistId):
-    youtube = build('youtube', 'v3', developerKey=data["YT_API_KEY"])
     res = youtube.playlistItems().list(
     part="snippet",
     playlistId=playlistId,
@@ -64,7 +66,7 @@ def fetch_all_youtube_videos(playlistId):
     #return a clean entry title & url list
     title_list = []
     url_list = []
-    stopwords = ['Extented','ᴴᴰ','1.','2.','3.','6.','4.','5.','7.','8.','9.','10.','(audio)','- Lyrics','(VÍDEO)','Official Audio','[',']','(',')','HD','Audio','with lyrics','Explicit','OFFICIAL VIDEO','Official Audio','official video','Official Video','Official Video', 'with lyrics', 'lyrics','official music video','Official Music Video','Official music Video','Official Music video','Official Video']
+    stopwords = ['1.','2.','3.','6.','4.','5.','7.','8.','9.','10.','[',']','(',')','Extented','ᴴᴰ','- Lyrics','Official Audio','VÍDEO','HD','Audio','audioΑ','with lyrics','Explicit','OFFICIAL VIDEO','Official Audio','official video','Official Video','Official Video', 'with lyrics', 'lyrics','official music video','Official Music Video','Official music Video','Official Music video','Official Video']
     for video in res["items"]:
         title = video.get('snippet')['title']
         for word in stopwords:
@@ -149,7 +151,14 @@ if __name__ == '__main__':
             if genre in values_list[k]:
                 indexes.append(k)
             k+=1
-        target_urls = []
+        target_videoIDs = []
+        #authorize
+        youtube_auth = authorizeUser()
+        #create playlist
+        name = 'Created by genre splitter based on genre: ' + genre
+        playlist_id = createPlaylist(name,youtube_auth)
         for index in indexes:
-            target_urls.append(sheet.cell(index+1, 2).value)
-        print(target_urls)
+            video_id = sheet.cell(index+1, 2).value.split('https://www.youtube.com/watch?v=')[1]
+            target_videoIDs.append(video_id)
+            addVideoToPlaylist(video_id,playlist_id,youtube_auth)
+        print(target_videoIDs)
