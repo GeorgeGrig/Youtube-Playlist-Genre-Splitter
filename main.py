@@ -65,7 +65,7 @@ def fetch_all_youtube_videos(playlistId):
     #return a clean entry title & url list
     title_list = []
     url_list = []
-    stopwords = ['1.','2.','3.','6.','4.','5.','7.','8.','9.','10.','[',']','(',')','Extented','ᴴᴰ','- Lyrics','Official Audio','VÍDEO','HD','Audio','audioΑ','with lyrics','Explicit','OFFICIAL VIDEO','Official Audio','official video','Official Video','Official Video', 'with lyrics', 'lyrics','official music video','Official Music Video','Official music Video','Official Music video','Official Video','ost']
+    stopwords = ['1.','2.','3.','6.','4.','5.','7.','8.','9.','10.','[',']','(',')','lyric video','lyrics video','high quality','music video',' video','hq','Extented','soundtrack','official','remix','ᴴᴰ','- Lyrics','Official Audio','VÍDEO','HD','Audio','audioΑ','with lyrics','Explicit','OFFICIAL VIDEO','Official Audio','official video','Official Video','Official Video', 'with lyrics', 'lyrics','official music video','Official Music Video','Official music Video','Official Music video','Official Video','ost']
     for video in res["items"]:
         title = video.get('snippet')['title'].lower()
         for word in stopwords:
@@ -94,17 +94,30 @@ def write_sheet(videos,urls,genres):
             print('**FAILED**')
     sheet.update_cells(cells)
 
+def write_cells(video,url,genre,index):
+    cells = []
+    try:
+        cells.append(Cell(index, 1, video))
+        cells.append(Cell(index, 2, url))
+        cells.append(Cell(index, 3, genre))
+        sheet.update_cells(cells)
+    except:
+        print('**FAILED**')
+    
 #Use genius api and genius website to get song genre
-def get_song_info(titles):
-    genres = []
-    l = 0
+def get_song_info(titles,video_urls):
+    #genres = []
+    #Change this if Finding genre failed at any time
+    STARTING_VALUE = 80 #Choose 1 to start from the begining of the playlist
     sad = 0
-    for title in titles:
+    l = n = STARTING_VALUE - 1
+    index = STARTING_VALUE + 1
+    while n <= len(titles):
         l += 1
         if round((len(titles) - l)/60) != 0:
-            print('\rFinding genre (',l,'/',len(titles),"). Time remaining: ",round((len(titles) - l)/60, 1)," hour(s)        ", end='', flush=True) 
+            print('\rFinding genre (',l,'/',len(titles),"). Time remaining: ",round((len(titles) - l)/60, 1)," hour(s), Currently doing: ",titles[n],"                  ", end='', flush=True) 
         else:           
-            print('\rFinding genre (',l,'/',len(titles),"). Time remaining: ",len(titles) - l," mins            ", end='', flush=True)
+            print('\rFinding genre (',l,'/',len(titles),"). Time remaining: ",len(titles) - l," mins, Currently doing: ",titles[n],"                  ", end='', flush=True)
         z = 1
         #supressing output of genius api
         stdout = sys.stdout 
@@ -112,11 +125,17 @@ def get_song_info(titles):
         devnull = open(os.devnull, "w", encoding="utf-8")
         sys.stdout = devnull
         sys.stderr = devnull
-        info = genius.search_song(title)
+        try:
+            info = genius.search_song(titles[n])
+        except:
+            print('Genius API failed')
         sys.stdout = stdout
         sys.stderr = stderr
         if info == 'None' or info is None:
-            genres.append("Couldn't find genre")
+            #genres.append("Couldn't find genre")
+            write_cells(titles[n],video_urls[n],"Couldn't find genre",index)
+            n +=1
+            index += 1
             sad += 1
         else:
             url = info.url.strip("'")
@@ -136,10 +155,13 @@ def get_song_info(titles):
                     genre = "Couldn't find genre"
             if genre == "Couldn't find genre":
                 sad += 1
-            genres.append(genre)           
+            #genres.append(genre)     
+            write_cells(titles[n],video_urls[n],genre,index)
+            n +=1      
+            index += 1
     print('\nDone getting genres')
-    print('Could not find genre of ', sad,' out of ', len(genres), ' songs')
-    return genres
+    print('Could not find genre of ', sad,' out of ', len(titles), ' songs')
+    #return genres
 
 if __name__ == '__main__':
     option = input('To get genres from youtube playlist press 0 to create playlists based on genre press 1: ')
@@ -151,10 +173,10 @@ if __name__ == '__main__':
             sheet = client.open("PlaylistGenre").get_worksheet(i) #This sheet needs to be shared with the account that we are using 
             print('Getting song names and video urls from playlist...')
             videos_names,videos_urls = fetch_all_youtube_videos(playlist)
-            genres = get_song_info(videos_names)
-            
-            print('Writing data to the sheet...')
-            write_sheet(videos_names,videos_urls,genres)
+            #genres = get_song_info(videos_names,videos_urls)
+            get_song_info(videos_names,videos_urls)
+            #print('Writing data to the sheet...')
+            #write_sheet(videos_names,videos_urls,genres)
             i += 1
             print('Finished at ', datetime.now().strftime("%H:%M:%S"))
     elif option == '1':

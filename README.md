@@ -14,7 +14,7 @@ Split Youtube playlists based on song genre.
 }
 `   
 3.Get your client secret [oauth 2](https://developers.google.com/sheets/api/guides/authorizing) for google sheets and rename it 'client_secret.json'  
-4.Get your client secret [oauth 2](https://developers.google.com/youtube/registering_an_application) from youtube api (in scopes you need 'https://www.googleapis.com/auth/youtube.force-ssl') and rename it 'client_secret_youtube.json.  
+4.Get your client secret [oauth 2](https://developers.google.com/youtube/registering_an_application) from youtube api (in scopes you need 'https://www.googleapis.com/auth/youtube.force-ssl') and rename it 'client_secret_youtube.json'.  
 
 # Usage  
 Choose either to split a playlist in it's genres or to create a playlist based on those genres.  
