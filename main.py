@@ -15,12 +15,9 @@ import json
 import gspread
 from gspread.models import Cell
 import os
-import time
 import sys
-import subprocess
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 import lyricsgenius
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -28,6 +25,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.firefox.options import Options
 from youtube import addVideoToPlaylist,createPlaylist,authorizeUser
+from datetime import datetime
 
 #Get credentials and value init
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -67,7 +65,7 @@ def fetch_all_youtube_videos(playlistId):
     #return a clean entry title & url list
     title_list = []
     url_list = []
-    stopwords = ['1.','2.','3.','6.','4.','5.','7.','8.','9.','10.','[',']','(',')','Extented','ᴴᴰ','- Lyrics','Official Audio','VÍDEO','HD','Audio','audioΑ','with lyrics','Explicit','OFFICIAL VIDEO','Official Audio','official video','Official Video','Official Video', 'with lyrics', 'lyrics','official music video','Official Music Video','Official music Video','Official Music video','Official Video']
+    stopwords = ['1.','2.','3.','6.','4.','5.','7.','8.','9.','10.','[',']','(',')','Extented','ᴴᴰ','- Lyrics','Official Audio','VÍDEO','HD','Audio','audioΑ','with lyrics','Explicit','OFFICIAL VIDEO','Official Audio','official video','Official Video','Official Video', 'with lyrics', 'lyrics','official music video','Official Music Video','Official music Video','Official Music video','Official Video','ost']
     for video in res["items"]:
         title = video.get('snippet')['title'].lower()
         for word in stopwords:
@@ -100,10 +98,11 @@ def write_sheet(videos,urls,genres):
 def get_song_info(titles):
     genres = []
     l = 0
+    sad = 0
     for title in titles:
         l += 1
         if round((len(titles) - l)/60) != 0:
-            print('\rFinding genre (',l,'/',len(titles),"). Time remaining: ",round((len(titles) - l)/60)," hours        ", end='', flush=True) 
+            print('\rFinding genre (',l,'/',len(titles),"). Time remaining: ",round((len(titles) - l)/60, 1)," hour(s)        ", end='', flush=True) 
         else:           
             print('\rFinding genre (',l,'/',len(titles),"). Time remaining: ",len(titles) - l," mins            ", end='', flush=True)
         z = 1
@@ -118,6 +117,7 @@ def get_song_info(titles):
         sys.stderr = stderr
         if info == 'None' or info is None:
             genres.append("Couldn't find genre")
+            sad += 1
         else:
             url = info.url.strip("'")
             while z <= 15: 
@@ -134,8 +134,11 @@ def get_song_info(titles):
                     z +=1
                     driver.quit()
                     genre = "Couldn't find genre"
+            if genre == "Couldn't find genre":
+                sad += 1
             genres.append(genre)           
     print('\nDone getting genres')
+    print('Could not find genre of ', sad,' out of ', len(genres), ' songs')
     return genres
 
 if __name__ == '__main__':
@@ -144,13 +147,16 @@ if __name__ == '__main__':
         playlists = data["PLAYLISTS"].values()
         i = 0
         for playlist in playlists:
+            print('Started at ', datetime.now().strftime("%H:%M:%S"))
             sheet = client.open("PlaylistGenre").get_worksheet(i) #This sheet needs to be shared with the account that we are using 
             print('Getting song names and video urls from playlist...')
             videos_names,videos_urls = fetch_all_youtube_videos(playlist)
             genres = get_song_info(videos_names)
+            
             print('Writing data to the sheet...')
             write_sheet(videos_names,videos_urls,genres)
             i += 1
+            print('Finished at ', datetime.now().strftime("%H:%M:%S"))
     elif option == '1':
         print('Getting unique genres...')
         sheet = client.open("PlaylistGenre").get_worksheet(0)
@@ -174,13 +180,13 @@ if __name__ == '__main__':
         youtube_auth = authorizeUser()
         #create playlist
         print('Creating playlist...')
-        name = 'Created by genre splitter based on genre: ' + genre
+        name = 'Created by genre splitter: ' + genre
         playlist_id = createPlaylist(name,youtube_auth)
         l = 1
         for index in indexes:
-            print ('Finding genre (',l/len(indexes),")         \r",)
+            print ('Adding to playlist (',l,'/',len(indexes),")         \r",)
             video_id = sheet.cell(index+1, 2).value.split('https://www.youtube.com/watch?v=')[1]
             target_videoIDs.append(video_id)
             addVideoToPlaylist(video_id,playlist_id,youtube_auth)
             l += 1
-        print(target_videoIDs)
+        print('\nDone.')
