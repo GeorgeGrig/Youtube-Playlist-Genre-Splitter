@@ -1,7 +1,7 @@
 # Youtube-Playlist-Genre-Splitter  
 Split Youtube playlists based on song genre.  
 
-# INSTRUCTIONS  
+# Instructions 
 1.Install dependencies.  
 2.Create a file named creds.json and populate the values with the following structure  
 `
