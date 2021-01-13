@@ -3,7 +3,7 @@ Split Youtube playlists based on song genre.
 
 ## Getting started  
 * In order to run the script you need to install all the required dependencies.  
-* Create a file named creds.json and populate the values with the following structure  
+* Create a file named creds.json and populate the values with the following structure:  
 `
 {
     "YT_API_KEY": "your youtube api key here",
@@ -13,7 +13,7 @@ Split Youtube playlists based on song genre.
     "GENIUS_CLIENT_ACCESS_TOKEN": "your genius client access token here"
 }
 `   
-* Get your client secret [oauth 2](https://developers.google.com/sheets/api/guides/authorizing) for google sheets and rename it 'client_secret.json'  
+* Get your client secret [oauth 2](https://developers.google.com/sheets/api/guides/authorizing) for google sheets and rename it 'client_secret.json'.  
 * Get your client secret [oauth 2](https://developers.google.com/youtube/registering_an_application) from youtube api (in scopes you need 'https://www.googleapis.com/auth/youtube.force-ssl') and rename it 'client_secret_youtube.json'.  
 
 ## Usage  
